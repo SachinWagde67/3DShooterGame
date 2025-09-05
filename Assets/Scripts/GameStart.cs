@@ -6,20 +6,23 @@ public class GameStart : MonoBehaviour {
     [SerializeField] private NetworkRunner runnerPrefab;
     [SerializeField] private NetworkPrefabRef playerSpawnerPrefab;
 
-    async void Start() {
+    private NetworkRunner runner;
 
-        NetworkRunner runner = Instantiate(runnerPrefab);
+    public NetworkRunner CreateRunner() {
 
-        PlayerSpawner spawner = runner.gameObject.AddComponent<PlayerSpawner>();
-        spawner.SetPlayerPrefab(playerSpawnerPrefab);
-        runner.AddCallbacks(spawner);
+        if(runner == null) {
 
-        await runner.StartGame(new StartGameArgs() {
+            runner = Instantiate(runnerPrefab);
 
-            GameMode = GameMode.AutoHostOrClient,
-            SessionName = "TestSession",
-            Scene = SceneRef.FromIndex(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex),
-            SceneManager = runner.GetComponent<NetworkSceneManagerDefault>()
-        });
+            PlayerSpawner spawner = runner.gameObject.AddComponent<PlayerSpawner>();
+            spawner.SetPlayerPrefab(playerSpawnerPrefab);
+            runner.AddCallbacks(spawner);
+
+            if(runner.GetComponent<INetworkSceneManager>() == null) {
+                runner.gameObject.AddComponent<NetworkSceneManagerDefault>();
+            }
+        }
+
+        return runner;
     }
 }
