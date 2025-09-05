@@ -52,7 +52,8 @@ public class PlayerController : NetworkBehaviour {
     private float jumpBufferCounter;
     private float coyoteTimeCounter;
 
-    private NetworkButtons prevButtons;
+    private NetworkButtons prevButtonsLocal;
+    private NetworkButtons prevButtonsAuthority;
 
     public override void Spawned() {
 
@@ -65,15 +66,37 @@ public class PlayerController : NetworkBehaviour {
     public override void FixedUpdateNetwork() {
 
         if(GetInput(out NetworkInputData input)) {
-            moveInput = input.move;
-            isRunning = input.RunHeld;
 
-            if(input.buttons.WasPressed(prevButtons, (int)PlayerButtons.Jump)) {
-                jumpBufferCounter = jumpBufferTime;
+            if(HasInputAuthority) {
+
+                moveInput = input.move;
+                isRunning = input.RunHeld;
+
+                if(input.buttons.WasPressed(prevButtonsLocal, (int)PlayerButtons.Jump)) {
+                    jumpBufferCounter = jumpBufferTime;
+                }
+
+                prevButtonsLocal = input.buttons;
             }
 
-            prevButtons = input.buttons;
+            if(Object.HasStateAuthority) {
+
+                moveInput = input.move;
+                isRunning = input.RunHeld;
+
+                if(input.buttons.WasPressed(prevButtonsAuthority, (int)PlayerButtons.Jump)) {
+                    jumpBufferCounter = jumpBufferTime;
+                }
+
+                prevButtonsAuthority = input.buttons;
+
+                HandleMovement();
+                HandleJump();
+            }
         }
+    }
+
+    private void HandleMovement() {
 
         // -------- Horizontal movement --------
         float targetSpeed = isRunning ? runSpeed : walkSpeed;
@@ -89,6 +112,9 @@ public class PlayerController : NetworkBehaviour {
         } else {
             characterController.Move(targetMove * Runner.DeltaTime);
         }
+    }
+
+    private void HandleJump() {
 
         // -------- Grounding --------
         bool wasGrounded = isGrounded;

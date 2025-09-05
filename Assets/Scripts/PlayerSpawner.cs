@@ -9,10 +9,25 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks {
 
     [SerializeField] private NetworkPrefabRef playerPrefab;
 
+    private NetworkObject playerObject;
+
+    public void SetPlayerPrefab(NetworkPrefabRef player) {
+        playerPrefab = player;
+    }
+
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player) {
 
-        Vector3 spawnPos = new Vector3(UnityEngine.Random.Range(-5, 5), 2, UnityEngine.Random.Range(-5, 5));
-        runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, player);
+        if(runner.IsServer) {
+
+            Vector3 spawnPos = new Vector3(UnityEngine.Random.Range(-5, 5), 2, UnityEngine.Random.Range(-5, 5));
+            playerObject = runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, player);
+            runner.SetPlayerObject(player, playerObject);
+        }
+    }
+
+    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) {
+
+        runner.Despawn(playerObject);
     }
 
     public void OnInput(NetworkRunner runner, NetworkInput input) {
@@ -21,7 +36,7 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks {
 
         data.move = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
 
-        data.buttons.Set((int)PlayerButtons.Jump, Input.GetKey(KeyCode.C));
+        data.buttons.Set((int)PlayerButtons.Jump, Input.GetKey(KeyCode.Space));
         data.buttons.Set((int)PlayerButtons.Run, Input.GetKey(KeyCode.LeftShift));
 
         input.Set(data);
@@ -37,7 +52,6 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks {
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
     public void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
     public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
-    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }
     public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress) { }
     public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, ArraySegment<byte> data) { }
     public void OnSceneLoadDone(NetworkRunner runner) { }
